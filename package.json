@@ -1,0 +1,9 @@
+{
+  "url": "https://bitbucket.org/wdavew/refocus",
+  "email": "refocus@bitbucket.org",
+  "license": "MIT",
+  "name": "Dave",
+  "devDependencies": {
+    "grunt": "^1.0.1"
+  }
+}
