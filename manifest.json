@@ -4,13 +4,13 @@
 	"description": "This extension delays page loads for user specified
 	websites",
 	"background": {
-		"scripts":["js/background.js"],
+		"scripts":["release/background.js"],
 		"persistent": false
 	},
 	"version": "0.0.0",
 	"permissions": [
 		"webNavigation",
-		"tabs",
+		"activeTab",
 		"http://*/",
 		"https://*/"
 	]

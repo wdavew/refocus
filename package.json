@@ -1,9 +1,14 @@
 {
   "url": "https://bitbucket.org/wdavew/refocus",
-  "email": "refocus@bitbucket.org",
+  "repository": {
+    "type": "git",
+    "url": "https://wdavew@bitbuckeh.org/wdavew/refocus.git"
+  },
   "license": "MIT",
   "name": "Dave",
   "devDependencies": {
-    "grunt": "^1.0.1"
+    "grunt": "^1.0.1",
+    "grunt-contrib-jshint": "^1.0.0",
+    "grunt-jsdoc": "^2.1.0"
   }
 }
