@@ -18,44 +18,59 @@ function createBlacklist(blackListArray) {
 	};
 }
 
-
-function getTabURL(tab) {
-	return chrome.tabs.query({
-		active: true,
-		currentWindow: true
-	}, function(tabs) {
-		return tabs[0].url;
-	});
+function tabExists(tabId) {
+    var exists = 0;
+    return exists;
 }
 
 
 // Delay page load and redirect to waiting page
 function delayPageLoad(tabId, delay, destURL) {
-	function redirect(tabId) { 
-		if (chrome.runtime.lastError) {
-			console.log('tab already closed')	
-		} else {
-		setTimeout(function () { 
-			chrome.tabs.update(tabId.id, {url: destURL});
-			}, 3000);
-		}
-	}
-	
-	var waitingURL = chrome.extension.getURL('delay.html');
+    var waitingURL = chrome.extension.getURL('delay.html');
+    var delayOver = 0;
+    function createSelectListener(delayedTab) {
+        function removeTab(activeInfo) {
+            if (!delayOver) {
+                chrome.windows.getCurrent({populate: true}, function (window) {
+                    window.tabs.forEach(function (tab) {
+                        if (tab.id === delayedTab) {
+                            setTimeout(function () {
+                                chrome.tabs.remove(delayedTab);
+                                chrome.tabs.onActivated.removeListener(removeTab);
+                                delayOver = 1;
+                            }, 100);
+                        }
+                    });
+                });
+            }
+        }
+        chrome.tabs.onActivated.addListener(removeTab);
+    }
+	function redirect(tabId) {
+        setTimeout(function () {
+            if (!delayOver) {
+                chrome.windows.getCurrent({populate: true}, function (window) {
+                    window.tabs.forEach(function (tab) {
+                        if (tab.id === tabId.id) {
+                            chrome.tabs.update(tabId.id, {url: destURL});
+                            delayOver = 1;
+                        }
+                    });
+                });
+            }
+        }, 3000);
+    }
+
 	chrome.tabs.update(tabId, {url: waitingURL});
-	createSelectListener(tabId);
-	chrome.tabs.get(tabId, redirect); 
+    createSelectListener(tabId);
+	chrome.tabs.get(tabId, redirect);
 }
-
-
-
 
 // Called when the user navigates to a given url
 function createUpdateListener(pageArray) {
 	var blackListedURL = createBlacklist(pageArray); 	
 	var immuneTabs = [];
 	chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-		var waitingURL = chrome.extension.getURL('delay.html');
 		var url = parseURL(changeInfo.url);
 		if (blackListedURL(url) && !(immuneTabs.includes(tab.id))) {
 			immuneTabs.push(tab.id);
@@ -64,25 +79,6 @@ function createUpdateListener(pageArray) {
 	});
 }
 
-function removeTab(activeInfo) {
-	if (activeInfo.tabId != delayedTabId){
-		setTimeout(function () {
-			chrome.tabs.remove(delayedTabId);
-		//	chrome.tabs.onActivated.removeListener(removeTab(activeInfo));
-		}, 100)
-	}
-}
-
-// Called when the user navigates to a given url
-function createSelectListener(delayedTabId) {
-	chrome.tabs.onActivated.addListener(function(activeInfo) {
-		if (activeInfo.tabId != delayedTabId){
-			setTimeout(function () {
-				chrome.tabs.remove(delayedTabId);
-			}, 100)
-		}	
-	});
-}
 
 function main(pageArray) {
 	createUpdateListener(pageArray);
