@@ -1,7 +1,7 @@
 /*global chrome: true*/
 // Extract the hostname from a url
 function parseURL(page) {
-	var urlPattern = /w{3}\.(\w+)\./i;
+	var urlPattern = /(w{3}\.\w+\.\w+)\//i;
 	try {
 		return urlPattern.exec(page)[1];
 	} catch (e) {  		
@@ -13,7 +13,7 @@ function parseURL(page) {
 function createBlacklist(blackListArray) {
 	return function(page) {
 		return blackListArray.some(function (blacklistedPage) {
-			return blacklistedPage.test(page);	
+			return blacklistedPage === page;	
 		});
 	};
 }
@@ -22,6 +22,7 @@ function createBlacklist(blackListArray) {
 function delayPageLoad(tabId, delay, destURL) {
     var waitingURL = chrome.extension.getURL('delay.html');
     var delayOver = 0;
+
     function createSelectListener(delayedTab) {
         function removeTab(activeInfo) {
             if (!delayOver) {
@@ -70,8 +71,18 @@ function createUpdateListener(pageArray) {
 	chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 		var url = parseURL(changeInfo.url);
 		if (blackListedURL(url) && !(immuneTabs.includes(tab.id))) {
-			immuneTabs.push(tab.id);
-			delayPageLoad(tab.id, 10, changeInfo.url);
+		    function backNavigate(details) {
+			chrome.webNavigation.onCommitted.removeListener(backNavigate);
+			if (details.transitionQualifiers.includes('forward_back')) {
+				console.log('back clicked');
+				chrome.tabs.executeScript(tabId, {code: 'window.history.back();'});
+				immuneTabs.shift();	
+			}
+		    }
+		// navigate to correct page if user clicks 'back'
+		chrome.webNavigation.onCommitted.addListener(backNavigate); 
+		immuneTabs.push(tab.id);
+		delayPageLoad(tab.id, 10, changeInfo.url);
 		}		
 	});
 }
@@ -81,4 +92,4 @@ function main(pageArray) {
 	createUpdateListener(pageArray);
 //	createSelectListener(pageArray);
 }
-main([/facebook/, /homestarrunner/]);
+main(['www.facebook.com', 'www.homestarrunner.com']);
