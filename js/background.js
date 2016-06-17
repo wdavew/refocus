@@ -1,5 +1,6 @@
 /*global chrome: true*/
-// Extract the hostname from a url
+
+// Extract base url 
 function parseURL(page) {
 	var urlPattern = /(w{3}\.\w+\.\w+)\//i;
 	try {
@@ -23,6 +24,7 @@ function delayPageLoad(tabId, delay, destURL) {
     var waitingURL = chrome.extension.getURL('delay.html');
     var delayOver = 0;
 
+//  If user selects another tab during page delay, close the delay page tab
     function createSelectListener(delayedTab) {
         function removeTab(activeInfo) {
             if (!delayOver) {
@@ -41,6 +43,7 @@ function delayPageLoad(tabId, delay, destURL) {
         }
         chrome.tabs.onActivated.addListener(removeTab);
     }
+   	// If the user sits through the entire delay, load the destination url
 	function redirect(tabId) {
         setTimeout(function () {
             if (!delayOver) {
@@ -58,19 +61,20 @@ function delayPageLoad(tabId, delay, destURL) {
             }
         }, 3000);
     }
-
 	chrome.tabs.update(tabId, {url: waitingURL});
    	createSelectListener(tabId);
 	chrome.tabs.get(tabId, redirect);
 }
 
-// Called when the user navigates to a given url
+// Create listener for updates to blacklisted pages
 function createUpdateListener(pageArray) {
 	var blackListedURL = createBlacklist(pageArray); 	
 	var immuneTabs = [];
 	chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 		var url = parseURL(changeInfo.url);
 		if (blackListedURL(url) && !(immuneTabs.includes(tab.id))) {
+
+		    //if back button is clicked, allow user to go back to original page 
 		    function backNavigate(details) {
 			chrome.webNavigation.onCommitted.removeListener(backNavigate);
 			if (details.transitionQualifiers.includes('forward_back')) {
@@ -79,7 +83,7 @@ function createUpdateListener(pageArray) {
 				immuneTabs.shift();	
 			}
 		    }
-		// navigate to correct page if user clicks 'back'
+		
 		chrome.webNavigation.onCommitted.addListener(backNavigate); 
 		immuneTabs.push(tab.id);
 		delayPageLoad(tab.id, 10, changeInfo.url);
@@ -90,6 +94,6 @@ function createUpdateListener(pageArray) {
 
 function main(pageArray) {
 	createUpdateListener(pageArray);
-//	createSelectListener(pageArray);
 }
-main(['www.facebook.com', 'www.homestarrunner.com']);
+
+main(['www.facebook.com', 'www.amazon.com']);
