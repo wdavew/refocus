@@ -23,7 +23,6 @@ function createBlacklist(blackListArray) {
 function delayPageLoad(tabId, delay, destURL) {
     var waitingURL = chrome.extension.getURL('delay.html');
     var delayOver = 0;
-
 //  If user selects another tab during page delay, close the delay page tab
     function createSelectListener(delayedTab) {
         function removeTab(activeInfo) {
@@ -49,13 +48,12 @@ function delayPageLoad(tabId, delay, destURL) {
             if (!delayOver) {
                 chrome.tabs.query({currentWindow: true, active: true}, function (tabs) {
                     tabs.forEach(function (tab) {
-		    	console.log(tab.url);
-                        if (tab.id === tabId.id && tab.url === waitingURL) {
-				chrome.tabs.update(tabId.id, {url: destURL});
-                        	delayOver = 1;
-                        } else if (tab.id == tabId.id && tab.url !== waitingURL) {
-				delayOver = 1;	
-			}	
+                    if (tab.id === tabId.id && tab.url === waitingURL) {
+                        chrome.tabs.update(tabId.id, {url: destURL});
+                        delayOver = 1;
+                    } else if (tab.id === tabId.id && tab.url !== waitingURL) {
+                        delayOver = 1;	
+                    }	
                     });
                 });
             }
@@ -72,25 +70,22 @@ function createUpdateListener(pageArray) {
 	var immuneTabs = [];
 	chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 		var url = parseURL(changeInfo.url);
-		if (blackListedURL(url) && !(immuneTabs.includes(tab.id))) {
-
-		    //if back button is clicked, allow user to go back to original page 
-		    function backNavigate(details) {
-			chrome.webNavigation.onCommitted.removeListener(backNavigate);
-			if (details.transitionQualifiers.includes('forward_back')) {
-				console.log('back clicked');
-				chrome.tabs.executeScript(tabId, {code: 'window.history.back();'});
-				immuneTabs.shift();	
-			}
-		    }
 		
-		chrome.webNavigation.onCommitted.addListener(backNavigate); 
-		immuneTabs.push(tab.id);
-		delayPageLoad(tab.id, 10, changeInfo.url);
+		//if back button is clicked, allow user to go back to original page 
+		function backNavigate(details) {
+			if (details.transitionQualifiers.includes('forward_back')) {
+				chrome.tabs.executeScript(tabId, {code: 'window.history.back();'});
+				immuneTabs.shift();
+                chrome.webNavigation.onCommitted.removeListener(backNavigate);
+			}
+		}
+		if (blackListedURL(url) && !(immuneTabs.includes(tab.id))) {
+            immuneTabs.push(tab.id);
+            chrome.webNavigation.onCommitted.addListener(backNavigate);
+            delayPageLoad(tab.id, 10, changeInfo.url);
 		}		
 	});
 }
-
 
 function main(pageArray) {
 	createUpdateListener(pageArray);
